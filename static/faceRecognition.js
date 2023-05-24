@@ -5,6 +5,11 @@ let context = null;
 let faceCascade = null;
 let src = null;
 let gray = null;
+let startTime = null;
+let circleX = null;
+let circleY = null;
+const circleRadius = 150;  // Adjust this to fit your needs
+const requiredTime = 10000;  // 10 seconds
 
 // Run this after the DOM has loaded
 document.addEventListener('DOMContentLoaded', (event) => {
@@ -34,13 +39,14 @@ window.loadFaceCascade = function() {
         });
 };
 
-
 window.startVideo = function() {
     navigator.mediaDevices.getUserMedia({ video: true, audio: false })
         .then(function(stream) {
             video.srcObject = stream;
             src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
             gray = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+            circleX = video.width / 2;
+            circleY = video.height / 2;
             requestAnimationFrame(processVideo);
         })
         .catch(function(err) {
@@ -54,12 +60,34 @@ window.processVideo = function() {
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
     let faces = new cv.RectVector();
     let detectMultiScale = faceCascade.detectMultiScale(gray, faces);
+
+    // Draw circle
+    context.beginPath();
+    context.arc(circleX, circleY, circleRadius, 0, 2 * Math.PI);
+    context.strokeStyle = 'blue';
+    context.lineWidth = 2;
+    context.stroke();
+
+    // Check each detected face
     for (let i = 0; i < faces.size(); ++i) {
         let face = faces.get(i);
-        context.strokeStyle = 'green';
-        context.lineWidth = 2;
-        context.rect(face.x, face.y, face.width, face.height);
-        context.stroke();
+
+        // Check if the face is inside the circle
+        let faceCenterX = face.x + face.width / 2;
+        let faceCenterY = face.y + face.height / 2;
+        if (Math.hypot(faceCenterX - circleX, faceCenterY - circleY) < circleRadius) {
+            if (startTime === null) {
+                // Start the timer
+                startTime = Date.now();
+            } else if (Date.now() - startTime > requiredTime) {
+                // Face has been inside the circle for the required time
+                console.log("Face detected inside the circle for 10 seconds");
+                // Perform action here
+            }
+        } else {
+            // Face is outside the circle, reset the timer
+            startTime = null;
+        }
     }
     requestAnimationFrame(processVideo);
 };
