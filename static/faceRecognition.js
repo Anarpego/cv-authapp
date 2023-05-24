@@ -8,7 +8,8 @@ let gray = null;
 let startTime = null;
 let circleX = null;
 let circleY = null;
-const circleRadius = 150;  // Adjust this to fit your needs
+let timer = null;
+const circleRadius = 100;  // Adjust this to fit your needs
 const requiredTime = 10000;  // 10 seconds
 
 // Run this after the DOM has loaded
@@ -16,6 +17,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     video = document.getElementById("video");
     canvas = document.getElementById("canvas");
     context = canvas.getContext("2d");
+    timer = document.getElementById("timer");
 });
 
 // Make sure the function is in the global scope
@@ -82,12 +84,61 @@ window.processVideo = function() {
             } else if (Date.now() - startTime > requiredTime) {
                 // Face has been inside the circle for the required time
                 console.log("Face detected inside the circle for 10 seconds");
-                // Perform action here
+
+                // Convert canvas to base64 string
+                let dataUrl = canvas
+                .toDataURL();
+
+                // Send the image data to the server
+                fetch('/save_image/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCookie('csrftoken')  // Django's CSRF token
+                    },
+                    body: 'image=' + encodeURIComponent(dataUrl)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('Image saved successfully.');
+                    } else {
+                        console.error('Failed to save image.');
+                    }
+                });
+
+                // Reset timer
+                startTime = null;
+                timer.innerHTML = "0:00";
+            } else {
+                // Update timer
+                let elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                let minutes = Math.floor(elapsedSeconds / 60);
+                let seconds = elapsedSeconds % 60;
+                timer.innerHTML = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
             }
         } else {
             // Face is outside the circle, reset the timer
             startTime = null;
+            timer.innerHTML = "0:00";
         }
     }
+
     requestAnimationFrame(processVideo);
 };
+
+// Utility function to get a cookie by name
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
