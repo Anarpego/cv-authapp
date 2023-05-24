@@ -1,25 +1,73 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Webcam Stream</title>
+    <script async src="https://docs.opencv.org/master/opencv.js" 
+            onload="onOpenCvReady();" type="text/javascript">
+    </script>
 </head>
 <body>
-    <h1>Webcam Stream</h1>
+    <h1>Face Recognition Login</h1>
     <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
 
-    <script>
-        // Get a reference to the video element
-        var video = document.getElementById('video');
+    <script type="text/javascript">
+        let video = document.getElementById("video");
+        let canvas = document.getElementById("canvas");
+        let context = canvas.getContext("2d");
+        let faceCascade = null;
+        let src = null;
+        let gray = null;
 
-        // Get access to the webcam
-        navigator.mediaDevices.getUserMedia({ video: true })
-        .then(function(stream) {
-            // Use the webcam stream as the source for the video element
-            video.srcObject = stream;
-        })
-        .catch(function(error) {
-            console.error('Error accessing webcam: ', error);
-        });
+        function onOpenCvReady() {
+            cv.onRuntimeInitialized = function() {
+                faceCascade = new cv.CascadeClassifier();
+                loadFaceCascade();
+            };
+        }
+
+        function loadFaceCascade() {
+            fetch("{% static 'haarcascades/haarcascade_frontalface_alt.xml' %}")
+                .then(response => response.text())
+                .then(xmlString => {
+                    cv.FS_createDataFile('/', 'haarcascade_frontalface_alt.xml', xmlString, true, false);
+                    faceCascade.load('/haarcascade_frontalface_alt.xml');
+                    startVideo();
+                })
+                .catch(error => {
+                    console.error('Failed to load haarcascade_frontalface_alt.xml: ', error);
+                });
+        }
+
+        function startVideo() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then(function(stream) {
+                    video.srcObject = stream;
+                    src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+                    gray = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+                    requestAnimationFrame(processVideo);
+                })
+                .catch(function(err) {
+                    console.log("An error occurred: " + err);
+                });
+        }
+
+        function processVideo() {
+            context.drawImage(video, 0, 0, video.width, video.height);
+            src.data.set(context.getImageData(0, 0, video.width, video.height).data);
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            let faces = new cv.RectVector();
+            let detectMultiScale = faceCascade.detectMultiScale(gray, faces);
+            for (let i = 0; i < faces.size(); ++i) {
+                let face = faces.get(i);
+                context.strokeStyle = 'green';
+                context.lineWidth = 2;
+                context.rect(face.x, face.y, face.width, face.height);
+                context.stroke();
+            }
+            requestAnimationFrame(processVideo);
+        }
     </script>
 </body>
 </html>
+
