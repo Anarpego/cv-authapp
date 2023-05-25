@@ -1,0 +1,14 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="{% static 'styles_iden.css' %}">
+    <script src="{% static 'capture_id.js' %}" type="text/javascript"></script>
+</head>
+<body>
+    <h1>FOTO DPI</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <button id="capture">Capture</button>
+</body>
+</html>

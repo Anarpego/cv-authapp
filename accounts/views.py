@@ -28,3 +28,20 @@ def save_image(request):
         return JsonResponse({'status': 'success'})
     else:
         return JsonResponse({'status': 'failed'})
+
+def id_capture(request):
+    return render(request, 'id_capture.html')
+
+@csrf_exempt
+def save_id_image(request):
+    if request.method == 'POST':
+        try:
+            image_data = request.POST.get('image')
+            image_data = base64.b64decode(image_data.split(',')[1])
+            with open(os.path.join('static', 'temp_pictures', 'id_image.png'), 'wb') as f:
+                f.write(image_data)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'fail', 'error': str(e)})
+    else:
+        return JsonResponse({'status': 'fail'})

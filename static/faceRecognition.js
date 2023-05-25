@@ -9,7 +9,7 @@ let startTime = null;
 let circleX = null;
 let circleY = null;
 let timer = null;
-const circleRadius = 100;  // Adjust this to fit your needs
+const circleRadius = 150;  // Adjust this to fit your needs
 const requiredTime = 10000;  // 10 seconds
 
 // Run this after the DOM has loaded
@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
     canvas = document.getElementById("canvas");
     context = canvas.getContext("2d");
     timer = document.getElementById("timer");
+
+    // Add click event listener to next button
+    document.getElementById('next').addEventListener('click', function() {
+        window.location.href = '/id_capture/';
+    });
 });
 
 // Make sure the function is in the global scope
@@ -84,10 +89,8 @@ window.processVideo = function() {
             } else if (Date.now() - startTime > requiredTime) {
                 // Face has been inside the circle for the required time
                 console.log("Face detected inside the circle for 10 seconds");
-
-                // Convert canvas to base64 string
-                let dataUrl = canvas
-                .toDataURL();
+                // Convert canvas to data URL
+                let dataUrl = canvas.toDataURL();
 
                 // Send the image data to the server
                 fetch('/save_image/', {
@@ -102,6 +105,7 @@ window.processVideo = function() {
                 .then(data => {
                     if (data.status === 'success') {
                         console.log('Image saved successfully.');
+                        document.getElementById('next').style.display = 'block';  // Unhide the "Next" button
                     } else {
                         console.error('Failed to save image.');
                     }
