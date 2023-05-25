@@ -136,6 +136,7 @@ GitHub.sublime-settings
 !.vscode/extensions.json 
 .history
 
+static/temp_pictures
 
 # my gcp ouath key
 client_secret_991229737923-s3jcjp78cd7cjcamch0mn9r2bf0n00m0.apps.googleusercontent.com.json

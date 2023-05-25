@@ -45,3 +45,6 @@ def save_id_image(request):
             return JsonResponse({'status': 'fail', 'error': str(e)})
     else:
         return JsonResponse({'status': 'fail'})
+
+def processing(request):
+    return render(request, 'processing.html')

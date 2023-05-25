@@ -2,13 +2,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="{% static 'styles_iden.css' %}">
-    <script src="{% static 'capture_id.js' %}" type="text/javascript"></script>
+    <title>Capture ID</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'styles_iden.css' %}" />
 </head>
 <body>
-    <h1>FOTO DPI</h1>
     <video id="video" width="640" height="480" autoplay></video>
     <canvas id="canvas" width="640" height="480"></canvas>
+    <button id="startCapture">Start Capture</button>
     <button id="capture">Capture</button>
+    <input type="file" id="upload" accept="image/png, image/jpeg">
+    <div class="capture-container">
+        <button id="create-account" style="display: none;">Create Account</button>
+    </div>
+    <script src="{% static 'capture_id.js' %}"></script>
 </body>
 </html>
