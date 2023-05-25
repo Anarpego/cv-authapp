@@ -20,14 +20,17 @@ def face_login(request):
 def save_image(request):
     if request.method == 'POST':
         data = request.POST['image']
+        print('Data:', data)  # Add this line
         # remove the beginning of the base64 string
         data = data.split(',')[1]
         binary_data = base64.b64decode(data)
-        with open(os.path.join('static', 'temp_pictures', 'snapshot.png'), 'wb') as f:
+        save_path = os.path.join('static', 'temp_pictures', 'snapshot.png')
+        with open(save_path, 'wb') as f:
             f.write(binary_data)
         return JsonResponse({'status': 'success'})
     else:
         return JsonResponse({'status': 'failed'})
+
 
 def id_capture(request):
     return render(request, 'id_capture.html')

@@ -10,7 +10,7 @@ let circleX = null;
 let circleY = null;
 let timer = null;
 const circleRadius = 150;  // Adjust this to fit your needs
-const requiredTime = 50000;  // 10 seconds
+const requiredTime = 10000;  // 10 seconds
 
 // Run this after the DOM has loaded
 document.addEventListener('DOMContentLoaded', (event) => {
