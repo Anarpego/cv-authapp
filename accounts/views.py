@@ -4,11 +4,14 @@ from PIL import Image
 import os
 import base64
 from google.cloud import vision
-from celery import shared_task
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+
+import face_recognition
+
+processing_results = {'status': 'processing', 'match': False, 'nombre': '', 'apellido': ''}
 
 def home(request): 
     return render(request, "home.html")
@@ -53,16 +56,6 @@ def save_id_image(request):
     else:
         return JsonResponse({'status': 'fail'})
 
-@shared_task
-def process_data():
-    extract_face()
-    extract_largest_id_face()
-    extract_text()
-    
-def processing(request):
-    process_data.delay()
-    return render(request, 'processing.html')
-
 def extract_face():
     # Load the image
     img = cv2.imread('static/temp_pictures/snapshot.png')
@@ -93,30 +86,87 @@ def extract_face():
 def extract_largest_id_face():
     # Load the image
     img = cv2.imread('static/temp_pictures/id_image.png')
-
-    # Load the Haar cascade xml file for face detection
     face_cascade = cv2.CascadeClassifier('static/haarcascades/haarcascade_frontalface_default.xml')
-
-    # Convert the image to gray scale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # Perform face detection
     faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-
-    # Check if any face is detected
     if len(faces) == 0:
         print("No face detected.")
         return
 
-    # Find the largest face
+    # Calculate the face that has the largest area
     largest_face = max(faces, key=lambda rectangle: rectangle[2] * rectangle[3])
 
-    # Extract the largest face
     x, y, w, h = largest_face
-    face_img = img[y:y+h, x:x+w]
+    x -= w // 10
+    y -= h // 10
+    w += w // 5
+    h += h // 5
 
-    # Save the face image
-    cv2.imwrite('static/temp_pictures/largest_face.png', face_img)
+    x = max(x, 0)
+    y = max(y, 0)
+    w = min(w, img.shape[1] - x)
+    h = min(h, img.shape[0] - y)
+
+    cropped_img = img[y:y+h, x:x+w]
+
+    cv2.imwrite('static/temp_pictures/largest_face.png', cropped_img)
+
+def compare_faces():
+    # Load the reference images
+    imagen_camara = face_recognition.load_image_file("static/temp_pictures/face.png")
+    imagen_id = face_recognition.load_image_file("static/temp_pictures/largest_face.png")
+
+    # Extract the 'encodings' that characterize our face:
+    personal_encodings = face_recognition.face_encodings(imagen_camara, model="cnn")
+    dpi_encodings = face_recognition.face_encodings(imagen_id, model="cnn")
+
+    if len(personal_encodings) == 0 or len(dpi_encodings) == 0:
+        print("No face found in one or both images.")
+        return False
+
+    personal = personal_encodings[0]
+    dpi = dpi_encodings[0]
+
+    encodings_conocidos = [
+        personal,
+        dpi
+    ]
+
+    nombres_conocidos = [
+        "personal",
+        "dpi"
+    ]
+
+    # Encode the faces
+    face_encodings = face_recognition.face_encodings(imagen_camara, model="cnn")
+    largest_face_encodings = face_recognition.face_encodings(imagen_id, model="cnn")
+
+    # Check if any face encodings are found
+    if len(face_encodings) == 0 or len(largest_face_encodings) == 0:
+        print("No face encodings found.")
+        return False
+
+    # Compare the encodings
+    face_encoding = face_encodings[0]
+    largest_face_encoding = largest_face_encodings[0]
+
+    # Compare faces with known encodings
+    match = face_recognition.compare_faces(encodings_conocidos, face_encoding, tolerance=0.6)
+    match_2 = face_recognition.compare_faces(encodings_conocidos, largest_face_encoding, tolerance=0.6)
+
+    if True in match:
+        matched_face = nombres_conocidos[match.index(True)]
+        print(f"face.png matched with {matched_face}")
+    else:
+        print("No match for face.png")
+
+    if True in match_2:
+        matched_face_2 = nombres_conocidos[match_2.index(True)]
+        print(f"largest_face.png matched with {matched_face_2}")
+    else:
+        print("No match for largest_face.png")
+
+    return match[0]
 
 def extract_text():
     # Load the image
@@ -128,9 +178,7 @@ def extract_text():
     # Threshold the image to get black and white effect
     ret, thresh1 = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
 
-    # Specify structure shape and kernel size. Kernel size increases or decreases the area
-    # of the rectangle to be detected. A smaller value like (10, 10) will detect each word,
-    # while a larger value like (30, 30) will detect whole lines of text.
+    # Specify structure shape and kernel size
     rect_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (30, 30))
 
     # Apply dilation on the threshold image
@@ -145,12 +193,13 @@ def extract_text():
     # Create a Vision client
     client = vision.ImageAnnotatorClient()
 
+    # Initialize variables for storing name and surname
+    nombre = ''
+    apellido = ''
+
     # Loop through all contours and extract bounding boxes
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
-
-        # Draw rectangle to visualize the bounding box
-        rect = cv2.rectangle(im2, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         # Cropping the text block for giving input to OCR
         cropped = im2[y:y + h, x:x + w]
@@ -174,8 +223,46 @@ def extract_text():
         # Extract text annotations from the response
         texts = response.text_annotations
 
-        # Print the detected texts and their bounding polygons
-        for text in texts:
-            print(f'\n"{text.description}"')
-            vertices = ([f'({vertex.x},{vertex.y})' for vertex in text.bounding_poly.vertices])
-            print('bounds: {}'.format(','.join(vertices)))
+        # Iterate over the detected text
+        for i, text in enumerate(texts):
+            # If the text is 'NOMBRE:' and there is a next element
+            if text.description == 'NOMBRE' and i+1 < len(texts):
+                nombre = texts[i+1].description  # Save the next element as name
+
+            # If the text is 'APELLIDO:' and there is a next element
+            if text.description == 'APELLIDO' and i+1 < len(texts):
+                apellido = texts[i+1].description  # Save the next element as surname
+
+    # Print the detected name and surname
+    print(f'Nombre: {nombre}\nApellido: {apellido}')
+    
+    return nombre, apellido
+  
+def processing(request):
+    global processing_results
+    extract_face()
+    extract_largest_id_face()
+    match = compare_faces()
+    nombre, apellido = extract_text()
+    processing_results = {
+        'status': 'complete', 
+        'match': bool(match),
+        'nombre': nombre, 
+        'apellido': apellido
+    }
+    return render(request, 'processing.html', processing_results)
+
+
+@csrf_exempt
+def get_processing_status(request):
+    return JsonResponse(processing_results)
+
+
+def welcome(request, nombre, apellido):
+    print("Nombre: ", nombre)
+    print("Apellido: ", apellido)
+    return render(request, 'welcome.html', {'nombre': nombre, 'apellido': apellido})
+
+
+
+

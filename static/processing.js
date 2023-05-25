@@ -12,8 +12,22 @@ function checkProcessingStatus() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'complete') {
-            // If processing is complete, redirect to the next page
-            window.location.href = "/next_page/";
+            // If processing is complete, show a confirmation prompt
+            document.getElementById('confirmText').textContent = 
+            `Faces match: ${data.match}\nIs this information correct?\nNombre: ${data.nombre}\nApellido: ${data.apellido}`;
+            var modal = document.getElementById('confirmModal');
+            modal.style.display = "block";
+
+            document.getElementById('noButton').onclick = function() {
+                // If the user clicked 'No', redirect to the home page
+                modal.style.display = "none";
+                window.location.href = "/";
+            }
+            document.getElementById('yesButton').onclick = function() {
+                // If the user clicked 'Yes', redirect to the welcome page
+                modal.style.display = "none";
+                window.location.href = `/welcome/${data.nombre}/${data.apellido}/`;
+            }
         }
     })
     .catch(error => console.error('Error:', error));
