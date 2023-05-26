@@ -83,14 +83,19 @@ def extract_face():
     cropped_pil_img.save('static/temp_pictures/face.png')
     
 
+import numpy as np
+
 def extract_largest_id_face():
-    # Load the image
     img = cv2.imread('static/temp_pictures/id_image.png')
     face_cascade = cv2.CascadeClassifier('static/haarcascades/haarcascade_frontalface_default.xml')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    
+    # Check if any face was detected
     if len(faces) == 0:
-        print("No face detected.")
+        print("No face detected. Saving a black square image.")
+        black_square = np.zeros((100, 100, 3), np.uint8)  # Create a black square with a size of 100x100
+        cv2.imwrite('static/temp_pictures/largest_face.png', black_square)
         return
 
     # Calculate the face that has the largest area
@@ -111,62 +116,34 @@ def extract_largest_id_face():
 
     cv2.imwrite('static/temp_pictures/largest_face.png', cropped_img)
 
+
+import face_recognition
+
 def compare_faces():
-    # Load the reference images
+    # Load the images
     imagen_camara = face_recognition.load_image_file("static/temp_pictures/face.png")
     imagen_id = face_recognition.load_image_file("static/temp_pictures/largest_face.png")
 
-    # Extract the 'encodings' that characterize our face:
-    personal_encodings = face_recognition.face_encodings(imagen_camara, model="cnn")
-    dpi_encodings = face_recognition.face_encodings(imagen_id, model="cnn")
+    # Extract the face encodings from both images
+    face_camara_encodings = face_recognition.face_encodings(imagen_camara, model="cnn")
+    face_id_encodings = face_recognition.face_encodings(imagen_id, model="cnn")
 
-    if len(personal_encodings) == 0 or len(dpi_encodings) == 0:
+    # Check if a face is found in both images
+    if len(face_camara_encodings) == 0 or len(face_id_encodings) == 0:
         print("No face found in one or both images.")
         return False
 
-    personal = personal_encodings[0]
-    dpi = dpi_encodings[0]
+    # Compare the face encodings
+    match = face_recognition.compare_faces(face_id_encodings, face_camara_encodings[0], tolerance=0.6)
 
-    encodings_conocidos = [
-        personal,
-        dpi
-    ]
-
-    nombres_conocidos = [
-        "personal",
-        "dpi"
-    ]
-
-    # Encode the faces
-    face_encodings = face_recognition.face_encodings(imagen_camara, model="cnn")
-    largest_face_encodings = face_recognition.face_encodings(imagen_id, model="cnn")
-
-    # Check if any face encodings are found
-    if len(face_encodings) == 0 or len(largest_face_encodings) == 0:
-        print("No face encodings found.")
-        return False
-
-    # Compare the encodings
-    face_encoding = face_encodings[0]
-    largest_face_encoding = largest_face_encodings[0]
-
-    # Compare faces with known encodings
-    match = face_recognition.compare_faces(encodings_conocidos, face_encoding, tolerance=0.6)
-    match_2 = face_recognition.compare_faces(encodings_conocidos, largest_face_encoding, tolerance=0.6)
-
-    if True in match:
-        matched_face = nombres_conocidos[match.index(True)]
-        print(f"face.png matched with {matched_face}")
+    if match[0]:
+        print("The faces match.")
     else:
-        print("No match for face.png")
+        print("The faces do not match.")
 
-    if True in match_2:
-        matched_face_2 = nombres_conocidos[match_2.index(True)]
-        print(f"largest_face.png matched with {matched_face_2}")
-    else:
-        print("No match for largest_face.png")
-
+    # Return the result
     return match[0]
+
 
 def extract_text():
     # Load the image

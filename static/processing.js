@@ -12,21 +12,30 @@ function checkProcessingStatus() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'complete') {
-            // If processing is complete, show a confirmation prompt
-            document.getElementById('confirmText').textContent = 
-            `Faces match: ${data.match}\nIs this information correct?\nNombre: ${data.nombre}\nApellido: ${data.apellido}`;
-            var modal = document.getElementById('confirmModal');
-            modal.style.display = "block";
+            var confirmText = document.getElementById('confirmText');
+            var yesButton = document.getElementById('yesButton');
+            var noButton = document.getElementById('noButton');
 
-            document.getElementById('noButton').onclick = function() {
-                // If the user clicked 'No', redirect to the home page
-                modal.style.display = "none";
-                window.location.href = "/";
-            }
-            document.getElementById('yesButton').onclick = function() {
-                // If the user clicked 'Yes', redirect to the welcome page
-                modal.style.display = "none";
-                window.location.href = `/welcome/${data.nombre}/${data.apellido}/`;
+            if (data.match) {
+                confirmText.textContent = 
+                "Your pictures match, please confirm your name to confirm and if not go back to take a better picture or upload your id document";
+                yesButton.onclick = function() {
+                    // If the user clicked 'Yes', redirect to the welcome page
+                    window.location.href = `/welcome/${data.nombre}/${data.apellido}/`;
+                }
+                noButton.onclick = function() {
+                    // If the user clicked 'No', redirect to the home page
+                    window.location.href = "/";
+                }
+            } else {
+                confirmText.textContent = 
+                "The pictures don't match, please go back to repeat the process with better pictures";
+                noButton.onclick = function() {
+                    // If the user clicked 'No', redirect to the home page
+                    window.location.href = "/";
+                }
+                // Hide the yes button since the faces don't match
+                yesButton.style.display = "none";
             }
         }
     })
