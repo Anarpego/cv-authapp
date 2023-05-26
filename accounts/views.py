@@ -87,9 +87,6 @@ def extract_face():
     # Save the cropped image
     cropped_pil_img.save('static/temp_pictures/face.png')
     
-
-import numpy as np
-
 def extract_largest_id_face():
     img = cv2.imread('static/temp_pictures/id_image.png')
     face_cascade = cv2.CascadeClassifier('static/haarcascades/haarcascade_frontalface_default.xml')
