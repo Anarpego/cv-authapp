@@ -122,7 +122,6 @@ def extract_largest_id_face():
     cv2.imwrite('static/temp_pictures/largest_face.png', cropped_img)
 
 
-import face_recognition
 
 def compare_faces():
     # Load the images
