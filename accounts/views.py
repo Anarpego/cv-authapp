@@ -8,8 +8,13 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from django.http import StreamingHttpResponse, JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-
 import face_recognition
+from twilio.rest import Client
+from dotenv import load_dotenv
+import os
+
+dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.env'))
+load_dotenv(dotenv_path)
 
 processing_results = {'status': 'processing', 'match': False, 'nombre': '', 'apellido': ''}
 
@@ -235,9 +240,32 @@ def get_processing_status(request):
     return JsonResponse(processing_results)
 
 
-def welcome(request, nombre, apellido):
+def send_sms(phone_number):
+    # Get Twilio details from environment variables
+    account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+    auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+    twilio_phone = os.getenv('TWILIO_PHONE')
+
+    # Create a Twilio client
+    client = Client(account_sid, auth_token)
+
+    phone_number = "+502" + phone_number
+
+    # Send an SMS
+    message = client.messages.create(
+        body="CUENTA CREADA",  # The message
+        from_=twilio_phone,  # Your Twilio number
+        to=phone_number  # The user's phone number
+    )
+
+    # Check that the message was sent successfully
+    print("Message sent: ", message.sid)
+
+    
+def welcome(request, nombre, apellido, phone_number):
     print("Nombre: ", nombre)
     print("Apellido: ", apellido)
+    send_sms(phone_number)
     return render(request, 'welcome.html', {'nombre': nombre, 'apellido': apellido})
 
 

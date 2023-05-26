@@ -3,6 +3,7 @@
 <html>
 <head>
     <script src="{% static 'processing.js' %}" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'processing_style.css' %}" />
 </head>
 <body>
     <div id="confirmModal" class="modal">
@@ -15,7 +16,8 @@
         </div>
         <div class="modal-footer">
           <button id="noButton" class="modal-close waves-effect waves-red btn-flat">Reiniciar el proceso</button>
-          <button id="yesButton" class="modal-close waves-effect waves-green btn-flat">Continuar</button>
+          <input type="text" id="phone_number" name="phone_number" placeholder="Enter Phone Number" style="display: none;">
+          <button id="yesButton" class="modal-close waves-effect waves-green btn-flat" style="display: none;">Continuar</button>
         </div>
     </div>      
 </body>

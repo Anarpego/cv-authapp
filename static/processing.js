@@ -15,13 +15,16 @@ function checkProcessingStatus() {
             var confirmText = document.getElementById('confirmText');
             var yesButton = document.getElementById('yesButton');
             var noButton = document.getElementById('noButton');
+            var phoneNumberInput = document.getElementById('phone_number');
 
             if (data.match) {
                 confirmText.textContent = 
                 "Your pictures match, please confirm your name to confirm and if not go back to take a better picture or upload your id document";
+                phoneNumberInput.style.display = "block";
+                yesButton.style.display = "block";  // Make the 'yes' button visible
                 yesButton.onclick = function() {
                     // If the user clicked 'Yes', redirect to the welcome page
-                    window.location.href = `/welcome/${data.nombre}/${data.apellido}/`;
+                    window.location.href = `/welcome/${data.nombre}/${data.apellido}/${phoneNumberInput.value}/`;
                 }
                 noButton.onclick = function() {
                     // If the user clicked 'No', redirect to the home page
@@ -34,8 +37,9 @@ function checkProcessingStatus() {
                     // If the user clicked 'No', redirect to the home page
                     window.location.href = "/";
                 }
-                // Hide the yes button since the faces don't match
+                // Hide the yes button and phone number input since the faces don't match
                 yesButton.style.display = "none";
+                phoneNumberInput.style.display = "none";
             }
         }
     })

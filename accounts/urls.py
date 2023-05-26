@@ -10,5 +10,6 @@ urlpatterns = [
     path('save_id_image/', views.save_id_image, name='save_id_image'),
     path('processing/', views.processing, name='processing'),
     path('get_processing_status/', views.get_processing_status, name='get_processing_status'),
-    path('welcome/<str:nombre>/<str:apellido>/', views.welcome, name='welcome')
+    path('welcome/<str:nombre>/<str:apellido>/<str:phone_number>/', views.welcome, name='welcome')
+
 ]
